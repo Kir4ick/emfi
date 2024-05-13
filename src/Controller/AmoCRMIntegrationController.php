@@ -3,6 +3,8 @@
 namespace App\Controller;
 
 use App\Service\AmoCRMProcessHooksService;
+use Psr\Log\LoggerInterface;
+use Psr\Log\LogLevel;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -18,13 +20,18 @@ class AmoCRMIntegrationController extends AbstractController
     private const DEFAULT_RESPONSE = 'success';
 
     public function __construct(
-        private readonly AmoCRMProcessHooksService $amoCRMProcessHooksService
+        private readonly AmoCRMProcessHooksService $amoCRMProcessHooksService,
+        private readonly LoggerInterface $logger
     ) {}
 
     #[Route(path: '/amo-crm/leads', methods: [Request::METHOD_POST])]
     public function leadsHook(Request $request): JsonResponse
     {
         $leadsData = $request->getContent();
+
+        $this->logger->log(LogLevel::INFO, $request->getContent());
+        $this->logger->log(LogLevel::INFO, $request->headers);
+
         if ($leadsData == null) {
             throw new BadRequestHttpException();
         }
