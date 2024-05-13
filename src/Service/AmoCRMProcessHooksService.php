@@ -39,7 +39,7 @@ final class AmoCRMProcessHooksService
 
             if ($action === self::UPDATE) {
                 $message = $this->generateUpdateNoteMessage(
-                    $leadData['updated'],
+                    $leadData['modified_user_id'],
                     $leadData['name'],
                     $leadData['date_updated'],
                 );
@@ -92,7 +92,7 @@ final class AmoCRMProcessHooksService
         string $name,
         string $dateTime
     ): ?string {
-        $accountModel = $this->amoCRMAdapter->getAccount($responsibleUserID);
+        $accountModel = $this->amoCRMAdapter->getUser($responsibleUserID);
         if ($accountModel == null) {
             return null;
         }

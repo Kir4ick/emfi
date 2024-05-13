@@ -7,6 +7,7 @@ parameters:
     integrationID: 'e9271889-8fdf-4f80-9dcb-10d3ad7084ff'
     secretKey: 'Csqco7d2SX5tPLudAmQoLUFIly04GHHJ79GxzwfgJqf0bNbHrZHyKODE66yiM50e'
     redirectDomain: 'asdadsads'
+    token: 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiIsImp0aSI6ImRkMjUzZTMxYzc0ZTlkNjhiMGFkZjI0Mzc0ZDY5MGQ4ZDFmZDgyNzI0NjVhYjNhNDNlYzU3NjdmZjcwMTQ0OGVkOWI5NWZkNDY4MGY0ZWYzIn0.eyJhdWQiOiJlOTI3MTg4OS04ZmRmLTRmODAtOWRjYi0xMGQzYWQ3MDg0ZmYiLCJqdGkiOiJkZDI1M2UzMWM3NGU5ZDY4YjBhZGYyNDM3NGQ2OTBkOGQxZmQ4MjcyNDY1YWIzYTQzZWM1NzY3ZmY3MDE0NDhlZDliOTVmZDQ2ODBmNGVmMyIsImlhdCI6MTcxNTYzMDQxNCwibmJmIjoxNzE1NjMwNDE0LCJleHAiOjE3NDkyNTQ0MDAsInN1YiI6IjExMDI5NjYyIiwiZ3JhbnRfdHlwZSI6IiIsImFjY291bnRfaWQiOjMxNzQyMDg2LCJiYXNlX2RvbWFpbiI6ImFtb2NybS5ydSIsInZlcnNpb24iOjIsInNjb3BlcyI6WyJjcm0iLCJmaWxlcyIsImZpbGVzX2RlbGV0ZSIsIm5vdGlmaWNhdGlvbnMiLCJwdXNoX25vdGlmaWNhdGlvbnMiXSwiaGFzaF91dWlkIjoiODFlNTBlNzktODk5NS00M2Q5LWJiZmEtMzhmYzA2ZDY3MTQ1In0.kVpmCtjb34kOA5ny64qIVvJS4f0_2usSgKeGdURVu4A7hr2wYjb2R6PRPU-3hY5VlFGuC3NFVItzUet-L9_tXJ17ObcCFK6CobJQBNMOXnsmNeCSqOfMlOcW1JiMwf4E-1iXmXnfS6ZLHM9F1Q4YmUV11YydKCn7Qebr0lgL4QbBKFoawFCUyjTf5AYB5DwmfY4dlZobH1MGmWPMNndde07lNOogO8fmaUViDofpK9ETsuYOu2eL9I3C-Zf38fKmoDvzpPj9cmdemfD--lKEvZSjIe0f0NM6yVTgLWpsclLou8IhwWhndE3LFzHBn3aONX65lcVzSQnvhz_hAmFyeg'
 
 services:
 
@@ -18,6 +19,7 @@ services:
             $integrationID: '%integrationID%'
             $secretKey: '%secretKey%'
             $redirectDomain: '%redirectDomain%'
+            $token: '%token%'
 
     # makes classes in src/ available to be used as services
     # this creates a service per class whose id is the fully-qualified class name

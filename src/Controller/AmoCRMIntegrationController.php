@@ -20,18 +20,13 @@ class AmoCRMIntegrationController extends AbstractController
     private const DEFAULT_RESPONSE = 'success';
 
     public function __construct(
-        private readonly AmoCRMProcessHooksService $amoCRMProcessHooksService,
-        private readonly LoggerInterface $logger
+        private readonly AmoCRMProcessHooksService $amoCRMProcessHooksService
     ) {}
 
     #[Route(path: '/amo-crm/leads', methods: [Request::METHOD_POST])]
     public function leadsHook(Request $request): JsonResponse
     {
         $leadsData = $request->getContent();
-
-        $this->logger->log(LogLevel::INFO, $request->getContent());
-        $this->logger->log(LogLevel::INFO, $request->headers);
-
         if ($leadsData == null) {
             throw new BadRequestHttpException();
         }
