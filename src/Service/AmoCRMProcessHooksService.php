@@ -35,11 +35,11 @@ final class AmoCRMProcessHooksService
     public function processLead(array $data): void
     {
         $entityType = EntityTypesInterface::LEADS;
-        [$mappedData, $action] = $this->mapHookData($data, $entityType);
+        [$mappedData, $action, $updatedAt] = $this->mapHookData($data, $entityType);
 
         $history = null;
         if ($action == self::UPDATE) {
-            $history = $this->amoCRMAdapter->getUpdateHistory(EntityTypesInterface::LEAD);
+            $history = $this->amoCRMAdapter->getUpdateHistory(EntityTypesInterface::LEAD, $updatedAt);
         }
 
         $this->sendNoteForEntities($mappedData, $entityType, $action, $history);
@@ -56,11 +56,11 @@ final class AmoCRMProcessHooksService
     {
         $entityType = EntityTypesInterface::CONTACTS;
 
-        [$mappedData, $action] = $this->mapHookData($contactData, $entityType);
+        [$mappedData, $action, $updatedAt] = $this->mapHookData($contactData, $entityType);
 
         $history = null;
         if ($action == self::UPDATE) {
-            $history = $this->amoCRMAdapter->getUpdateHistory(EntityTypesInterface::CONTACTS);
+            $history = $this->amoCRMAdapter->getUpdateHistory(EntityTypesInterface::CONTACTS, $updatedAt);
         }
 
         $this->sendNoteForEntities($mappedData, $entityType, $action, $history);
@@ -89,8 +89,14 @@ final class AmoCRMProcessHooksService
 
         $hookData = $hookData[$action];
 
+        $minUpdatedAt = PHP_INT_MAX;
+
         # Мапим приходящие данные
-        $mappedData = array_map(function (array $data) {
+        $mappedData = array_map(function (array $data) use ($minUpdatedAt) {
+            if ((int)$data['last_modified'] < $minUpdatedAt) {
+                $minUpdatedAt = (int)$data['last_modified'];
+            }
+
             return [
                 'id' => $data['id'],
                 'name' => $data['name'],
@@ -102,7 +108,7 @@ final class AmoCRMProcessHooksService
             ];
         }, $hookData);
 
-        return [$mappedData, $action];
+        return [$mappedData, $action, $minUpdatedAt];
     }
 
     /**
@@ -117,15 +123,19 @@ final class AmoCRMProcessHooksService
     private function generateCreateNoteMessage(
         int $responsibleUserID,
         string $name,
-        string $dateTime
+        string $dateTime,
+        string $entityType
     ): string {
         $userModel = $this->amoCRMAdapter->getUserByID($responsibleUserID);
         if ($userModel == null) {
             throw new BadRequestHttpException('Не удалось найти аккаунт');
         }
 
+        $entityType = $this->getTypeName($entityType);
+
         return sprintf(
-            'Добавлен %s, ответственный пользователь: %s, время создания: %s',
+            'Добавлен новый %s, с названием %, ответственный пользователь: %s, время создания: %s',
+            $entityType,
             $name,
             $userModel->getName(),
             $dateTime
@@ -136,12 +146,12 @@ final class AmoCRMProcessHooksService
      * Создание сообщение об обновления сущности
      *
      * @param array $updatedFields
-     * @param string $name
+     * @param string $entityType
      * @param string $dateTime
      *
      * @return string
      */
-    private function generateUpdateNoteMessage(array $updatedFields, string $name, string $dateTime): string
+    private function generateUpdateNoteMessage(array $updatedFields, string $dateTime, string $entityType): string
     {
         $updatedFieldsData = [];
         foreach ($updatedFields as $fieldList) {
@@ -150,14 +160,25 @@ final class AmoCRMProcessHooksService
             }
         }
 
+        $entityType = $this->getTypeName($entityType);
+
         $updatedFieldsData = implode(';', $updatedFieldsData);
 
         return sprintf(
             'Изменён %s, время изменения: %s, затронутые поля: %s',
-            $name,
+            $entityType,
             $dateTime,
             $updatedFieldsData
         );
+    }
+
+    private function getTypeName(string $entityType): string
+    {
+        return match ($entityType) {
+            EntityTypesInterface::LEADS => 'лид',
+            EntityTypesInterface::CONTACTS => 'контакт',
+            default => 'А?'
+        };
     }
 
     /**
@@ -176,7 +197,7 @@ final class AmoCRMProcessHooksService
         $mappedHistory = [];
         /** @var EventModel $historyData */
         foreach ($history as $historyData) {
-            $mappedHistory[$historyData->getEntityId()][$historyData->getCreatedAt()] = $historyData->getValueBefore();
+            $mappedHistory[$historyData->getEntityId()][$historyData->getCreatedAt()] = $historyData->getValueAfter();
         }
 
         foreach ($mappedData as $entityData) {
@@ -186,7 +207,8 @@ final class AmoCRMProcessHooksService
                 $message = $this->generateCreateNoteMessage(
                     (int)$entityData['responsible_user_id'],
                     $entityData['name'],
-                    $entityData['date_create']
+                    $entityData['date_create'],
+                    $entityType
                 );
             }
 
@@ -198,8 +220,8 @@ final class AmoCRMProcessHooksService
 
                 $message = $this->generateUpdateNoteMessage(
                     $updateHistory,
-                    $entityData['name'],
                     $entityData['date_updated'],
+                    $entityType
                 );
             }
 

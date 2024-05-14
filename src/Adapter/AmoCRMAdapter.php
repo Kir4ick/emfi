@@ -124,14 +124,14 @@ class AmoCRMAdapter
      *
      * @return EventsCollections|null
      */
-    public function getUpdateHistory(string $entityType): ?EventsCollections
+    public function getUpdateHistory(string $entityType, int $updatedAt): ?EventsCollections
     {
         try {
             $filter = new EventsFilter();
 
             $filter->setCreatedAt([
-                'from' => time() - 60 * 1000,
-                'to' => time()
+                'from' => $updatedAt - 1000,
+                'to' => time() + 2 * 60 * 1000
             ]);
             $filter->setEntity([$entityType]);
             #$filter->setEntityIds([2415047]); // ОНО НЕ РАБОТАЕТ ПОЧЕМУ ТО
