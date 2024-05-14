@@ -4,12 +4,14 @@ namespace App\Adapter\Data\Input;
 
 class AddNoteInput
 {
+
     public function __construct(
-        private string $entityType,
-        private int    $entityID,
-        private string $noteText
-    )
-    {
+        private readonly string $entityType,
+        private readonly int    $entityID,
+        private readonly string $noteText,
+        private readonly int    $creatorID,
+        private readonly int    $creatorAccountID,
+    ) {
     }
 
     public function getEntityType(): string
@@ -25,6 +27,16 @@ class AddNoteInput
     public function getNoteText(): string
     {
         return $this->noteText;
+    }
+
+    public function getCreatorID(): int
+    {
+        return $this->creatorID;
+    }
+
+    public function getCreatorAccountID(): int
+    {
+        return $this->creatorAccountID;
     }
 
 }

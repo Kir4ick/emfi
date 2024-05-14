@@ -7,6 +7,7 @@ use AmoCRM\Client\AmoCRMApiClientFactory;
 use AmoCRM\Client\LongLivedAccessToken;
 use AmoCRM\Collections\NotesCollection;
 use AmoCRM\Exceptions\AmoCRMApiException;
+use AmoCRM\Models\AccountModel;
 use AmoCRM\Models\NoteModel;
 use AmoCRM\Models\NoteType\ServiceMessageNote;
 use AmoCRM\Models\UserModel;
@@ -27,7 +28,8 @@ class AmoCRMAdapter
         OAuthConfig $config,
         OAuthService $authService,
         private readonly LoggerInterface $logger,
-        private string $token
+        private readonly string $token,
+        private readonly string $domain
     ) {
         # Создание клиента для коннекта с AMO CRM
         $apiClientFactory = new AmoCRMApiClientFactory($config, $authService);
@@ -36,7 +38,7 @@ class AmoCRMAdapter
         $longLivenToken = new LongLivedAccessToken($this->token);
 
         $this->client->setAccessToken($longLivenToken)
-            ->setAccountBaseDomain('kir4ick.amocrm.ru');
+            ->setAccountBaseDomain($domain);
     }
 
     /**
@@ -56,7 +58,9 @@ class AmoCRMAdapter
             $serviceMessageNote
                 ->setId(rand(1000000, 10000000))
                 ->setText($input->getNoteText())
-                ->setEntityId($input->getEntityID());
+                ->setEntityId($input->getEntityID())
+                ->setResponsibleUserId($input->getCreatorID())
+                ->setAccountId($input->getCreatorAccountID());
 
             $notesCollection->add($serviceMessageNote);
 
@@ -71,10 +75,22 @@ class AmoCRMAdapter
         }
     }
 
-    public function getUser(int $accountID): ?UserModel
+    public function getUserByID(int $userID): ?UserModel
     {
         try {
-            return $this->client->users()->getOne($accountID);
+            return $this->client->users()->getOne($userID);
+        } catch (Throwable $exception) {
+            $message = '[get_account] ERROR: ' . $exception->getMessage() . $exception->getTraceAsString();
+            $this->logger->log(LogLevel::ERROR, $message);
+
+            return null;
+        }
+    }
+
+    public function getCurrentAccount(): ?AccountModel
+    {
+        try {
+            return $this->client->account()->getCurrent();
         } catch (Throwable $exception) {
             $message = '[get_account] ERROR: ' . $exception->getMessage() . $exception->getTraceAsString();
             $this->logger->log(LogLevel::ERROR, $message);

@@ -9,14 +9,12 @@ class OAuthService implements OAuthServiceInterface
 {
 
     /**
+     * Не нужно, так как используется долгий ключ
+     *
      * @param AccessTokenInterface $accessToken
      * @param string $baseDomain
      * @return void
      */
     public function saveOAuthToken(AccessTokenInterface $accessToken, string $baseDomain): void
-    {
-        var_dump($accessToken);
-        var_dump($baseDomain);
-        die();
-    }
+    {}
 }

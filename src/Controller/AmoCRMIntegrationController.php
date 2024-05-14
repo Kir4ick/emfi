@@ -26,12 +26,12 @@ class AmoCRMIntegrationController extends AbstractController
     #[Route(path: '/amo-crm/leads', methods: [Request::METHOD_POST])]
     public function leadsHook(Request $request): JsonResponse
     {
-        $leadsData = $request->getContent();
+        $leadsData = $request->request->all();
         if ($leadsData == null) {
-            throw new BadRequestHttpException();
+            throw new BadRequestHttpException('Пусто?');
         }
 
-        $this->amoCRMProcessHooksService->processLead(json_decode($leadsData, true));
+        $this->amoCRMProcessHooksService->processLead($leadsData);
 
         return $this->json(self::DEFAULT_RESPONSE);
     }
@@ -39,6 +39,13 @@ class AmoCRMIntegrationController extends AbstractController
     #[Route(path: '/amo-crm/contacts', methods: [Request::METHOD_POST])]
     public function contactsHook(Request $request): JsonResponse
     {
+        $contactsData = $request->request->all();
+        if ($contactsData == null) {
+            throw new BadRequestHttpException('Пусто?');
+        }
+
+        $this->amoCRMProcessHooksService->processContact($contactsData);
+
         return $this->json(self::DEFAULT_RESPONSE);
     }
 }
