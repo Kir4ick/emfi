@@ -5,13 +5,17 @@ namespace App\Adapter;
 use AmoCRM\Client\AmoCRMApiClient;
 use AmoCRM\Client\AmoCRMApiClientFactory;
 use AmoCRM\Client\LongLivedAccessToken;
+use AmoCRM\Collections\EventsCollections;
 use AmoCRM\Collections\NotesCollection;
 use AmoCRM\Exceptions\AmoCRMApiException;
+use AmoCRM\Filters\EventsFilter;
+use AmoCRM\Helpers\EntityTypesInterface;
 use AmoCRM\Models\AccountModel;
 use AmoCRM\Models\NoteModel;
 use AmoCRM\Models\NoteType\ServiceMessageNote;
 use AmoCRM\Models\UserModel;
 use App\Adapter\Data\Input\AddNoteInput;
+use App\Adapter\Data\Input\GetHistoryInput;
 use App\Adapter\Data\Output\AddNoteOutput;
 use App\AmoCRM\OAuthConfig;
 use App\AmoCRM\OAuthService;
@@ -25,11 +29,11 @@ class AmoCRMAdapter
     private AmoCRMApiClient $client;
 
     public function __construct(
-        OAuthConfig $config,
-        OAuthService $authService,
+        OAuthConfig                      $config,
+        OAuthService                     $authService,
         private readonly LoggerInterface $logger,
-        private readonly string $token,
-        private readonly string $domain
+        private readonly string          $token,
+        private readonly string          $domain
     ) {
         # Создание клиента для коннекта с AMO CRM
         $apiClientFactory = new AmoCRMApiClientFactory($config, $authService);
@@ -45,6 +49,7 @@ class AmoCRMAdapter
      * Отправление запроса на создание примечания
      *
      * @param AddNoteInput $input
+     *
      * @return AddNoteOutput
      */
     public function addNote(AddNoteInput $input): AddNoteOutput
@@ -60,7 +65,7 @@ class AmoCRMAdapter
                 ->setCreatedBy($input->getCreatorID())
                 ->setText($input->getNoteText())
                 ->setEntityId($input->getEntityID())
-                ->setService('Api Library')
+                ->setService('Testovoe Zadanie')
                 ->setAccountId($input->getCreatorAccountID());
 
             $notesCollection->add($serviceMessageNote);
@@ -76,6 +81,13 @@ class AmoCRMAdapter
         }
     }
 
+    /**
+     * Получение пользователя по id
+     *
+     * @param int $userID
+     *
+     * @return UserModel|null
+     */
     public function getUserByID(int $userID): ?UserModel
     {
         try {
@@ -88,6 +100,11 @@ class AmoCRMAdapter
         }
     }
 
+    /**
+     * Получение модели текущего пользователя
+     *
+     * @return AccountModel|null
+     */
     public function getCurrentAccount(): ?AccountModel
     {
         try {
@@ -99,4 +116,37 @@ class AmoCRMAdapter
             return null;
         }
     }
+
+    /**
+     * Получение истории обновления полей
+     *
+     * @param string $entityType
+     *
+     * @return EventsCollections|null
+     */
+    public function getUpdateHistory(string $entityType): ?EventsCollections
+    {
+        try {
+            $filter = new EventsFilter();
+
+            $filter->setCreatedAt([
+                'from' => time() - 60 * 1000,
+                'to' => time()
+            ]);
+            $filter->setEntity([$entityType]);
+            #$filter->setEntityIds([2415047]); // ОНО НЕ РАБОТАЕТ ПОЧЕМУ ТО
+            $filter->setTypes([
+                'name_field_changed',
+                'custom_field_value_changed',
+            ]);
+
+            return $this->client->events()->get($filter);
+        } catch (AmoCRMApiException $exception) {
+            $message = '[get_history] ERROR: ' . $exception->getMessage() . $exception->getTraceAsString();
+            $this->logger->log(LogLevel::ERROR, $message);
+
+            return null;
+        }
+    }
+
 }

@@ -28,7 +28,7 @@ class AmoCRMIntegrationController extends AbstractController
     {
         $leadsData = $request->request->all();
         if ($leadsData == null) {
-            throw new BadRequestHttpException('Пусто?');
+            throw new BadRequestHttpException('Пусто');
         }
 
         $this->amoCRMProcessHooksService->processLead($leadsData);
@@ -41,7 +41,7 @@ class AmoCRMIntegrationController extends AbstractController
     {
         $contactsData = $request->request->all();
         if ($contactsData == null) {
-            throw new BadRequestHttpException('Пусто?');
+            throw new BadRequestHttpException('Пусто');
         }
 
         $this->amoCRMProcessHooksService->processContact($contactsData);

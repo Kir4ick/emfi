@@ -2,9 +2,12 @@
 
 namespace App\Service;
 
+use AmoCRM\Collections\EventsCollections;
 use AmoCRM\Helpers\EntityTypesInterface;
+use AmoCRM\Models\EventModel;
 use App\Adapter\AmoCRMAdapter;
 use App\Adapter\Data\Input\AddNoteInput;
+use App\Adapter\Data\Input\GetHistoryInput;
 use Psr\Log\LoggerInterface;
 use Psr\Log\LogLevel;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
@@ -32,10 +35,14 @@ final class AmoCRMProcessHooksService
     public function processLead(array $data): void
     {
         $entityType = EntityTypesInterface::LEADS;
+        [$mappedData, $action] = $this->mapHookData($data, $entityType);
 
-        [$mappedData, $action] = $this->mapHookData($data, 'leads');
+        $history = null;
+        if ($action == self::UPDATE) {
+            $history = $this->amoCRMAdapter->getUpdateHistory(EntityTypesInterface::LEAD);
+        }
 
-        $this->sendNoteForEntities($mappedData, $entityType, $action);
+        $this->sendNoteForEntities($mappedData, $entityType, $action, $history);
     }
 
     /**
@@ -51,7 +58,12 @@ final class AmoCRMProcessHooksService
 
         [$mappedData, $action] = $this->mapHookData($contactData, $entityType);
 
-        $this->sendNoteForEntities($mappedData, $entityType, $action);
+        $history = null;
+        if ($action == self::UPDATE) {
+            $history = $this->amoCRMAdapter->getUpdateHistory(EntityTypesInterface::CONTACTS);
+        }
+
+        $this->sendNoteForEntities($mappedData, $entityType, $action, $history);
     }
 
     /**
@@ -78,15 +90,15 @@ final class AmoCRMProcessHooksService
         $hookData = $hookData[$action];
 
         # Мапим приходящие данные
-        $mappedData = array_map(function (array $lead) {
+        $mappedData = array_map(function (array $data) {
             return [
-                'id' => $lead['id'],
-                'name' => $lead['name'],
-                'created_user_id' => $lead['created_user_id'],
-                'modified_user_id' => $lead['modified_user_id'] ?? 0,
-                'date_create' => date('Y-m-d H:i:s', $lead['date_create']),
-                'date_updated' => date('Y-m-d H:i:s', $lead['last_modified']),
-                'responsible_user_id' => $lead['responsible_user_id'] ?? 0
+                'id' => $data['id'],
+                'name' => $data['name'],
+                'created_user_id' => $data['created_user_id'],
+                'modified_user_id' => $data['modified_user_id'] ?? 0,
+                'date_create' => date('Y-m-d H:i:s', $data['date_create']),
+                'date_updated' => date('Y-m-d H:i:s', $data['last_modified']),
+                'responsible_user_id' => $data['responsible_user_id'] ?? 0,
             ];
         }, $hookData);
 
@@ -132,8 +144,10 @@ final class AmoCRMProcessHooksService
     private function generateUpdateNoteMessage(array $updatedFields, string $name, string $dateTime): string
     {
         $updatedFieldsData = [];
-        foreach ($updatedFields as $fieldName => $updatedField) {
-            $updatedFieldsData[] = $fieldName . ' обновлено на: ' . $updatedField;
+        foreach ($updatedFields as $fieldList) {
+            foreach ($fieldList as $fieldName => $updatedField) {
+                $updatedFieldsData[] = $fieldName . ' обновлено на: ' . $updatedField;
+            }
         }
 
         $updatedFieldsData = implode(';', $updatedFieldsData);
@@ -155,9 +169,15 @@ final class AmoCRMProcessHooksService
      *
      * @return void
      */
-    private function sendNoteForEntities(array $mappedData, string $entityType, string $action): void
+    private function sendNoteForEntities(array $mappedData, string $entityType, string $action, ?EventsCollections $history): void
     {
         $currentAccount = $this->amoCRMAdapter->getCurrentAccount();
+
+        $mappedHistory = [];
+        /** @var EventModel $historyData */
+        foreach ($history as $historyData) {
+            $mappedHistory[$historyData->getEntityId()][$historyData->getCreatedAt()] = $historyData->getValueBefore();
+        }
 
         foreach ($mappedData as $entityData) {
             $message = null;
@@ -171,8 +191,13 @@ final class AmoCRMProcessHooksService
             }
 
             if ($action === self::UPDATE) {
+                $updateHistory = $this->getUpdatedFieldsData($mappedHistory, $entityData['id']);
+                if ($updateHistory == null) {
+                    continue;
+                }
+
                 $message = $this->generateUpdateNoteMessage(
-                    ['name' => $entityData['name']],
+                    $updateHistory,
                     $entityData['name'],
                     $entityData['date_updated'],
                 );
@@ -194,5 +219,28 @@ final class AmoCRMProcessHooksService
             );
             $this->amoCRMAdapter->addNote($noteInput);
         }
+    }
+
+    /**
+     * Получение обновлённых полей
+     *
+     * @param array $updateHistory
+     * @param int $entityID
+     *
+     * @return array|null
+     */
+    private function getUpdatedFieldsData(array $updateHistory, int $entityID): ?array
+    {
+        $updateHistory = $updateHistory[$entityID] ?? null;
+        if ($updateHistory == null) {
+            return null;
+        }
+
+        ksort($updateHistory);
+        $updateHistory = end($updateHistory);
+
+        $updateHistory = $updateHistory[0];
+
+        return array_values($updateHistory);
     }
 }
