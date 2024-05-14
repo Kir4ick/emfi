@@ -56,10 +56,11 @@ class AmoCRMAdapter
 
             $serviceMessageNote = new ServiceMessageNote();
             $serviceMessageNote
-                ->setId(rand(1000000, 10000000))
+                ->setId(1)
+                ->setCreatedBy($input->getCreatorID())
                 ->setText($input->getNoteText())
                 ->setEntityId($input->getEntityID())
-                ->setResponsibleUserId($input->getCreatorID())
+                ->setService('Api Library')
                 ->setAccountId($input->getCreatorAccountID());
 
             $notesCollection->add($serviceMessageNote);

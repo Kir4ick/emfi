@@ -84,8 +84,8 @@ final class AmoCRMProcessHooksService
                 'name' => $lead['name'],
                 'created_user_id' => $lead['created_user_id'],
                 'modified_user_id' => $lead['modified_user_id'] ?? 0,
-                'date_create' => date('Y-m-d H:i:s', strtotime($lead['date_create'])),
-                'date_updated' => date('Y-m-d H:i:s', strtotime($lead['last_modified'])),
+                'date_create' => date('Y-m-d H:i:s', $lead['date_create']),
+                'date_updated' => date('Y-m-d H:i:s', $lead['last_modified']),
                 'responsible_user_id' => $lead['responsible_user_id'] ?? 0
             ];
         }, $hookData);
