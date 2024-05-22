@@ -51,6 +51,7 @@ class AmoCRMAdapter
 
             return new AddNoteOutput(false);
         }
+
     }
 
     public function getAccount(int $accountID): ?AccountModel
